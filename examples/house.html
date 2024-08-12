@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>CSG Example</title>
+  <script src='../dist/ln.global.js'></script>
+</head>
+<body>
+  <script>
+
+
+    class ShadedBoxShape extends ln.Shapes.BoxShape {
+      constructor(min, max) {
+        super(min, max);
+      }
+      Paths() {
+        const [x1, y1, z1] = [this.Min.X, this.Min.Y, this.Min.Z];
+        const [x2, y2, z2] = [this.Max.X, this.Max.Y, this.Max.Z];
+        const paths = ln.Math.Paths.FromVectors([
+          [new ln.Math.Vector(x1, y1, z1), new ln.Math.Vector(x1, y1, z2)],
+          [new ln.Math.Vector(x1, y1, z1), new ln.Math.Vector(x1, y2, z1)],
+          [new ln.Math.Vector(x1, y1, z1), new ln.Math.Vector(x2, y1, z1)],
+          [new ln.Math.Vector(x1, y1, z2), new ln.Math.Vector(x1, y2, z2)],
+          [new ln.Math.Vector(x1, y1, z2), new ln.Math.Vector(x2, y1, z2)],
+          [new ln.Math.Vector(x1, y2, z1), new ln.Math.Vector(x1, y2, z2)],
+          [new ln.Math.Vector(x1, y2, z1), new ln.Math.Vector(x2, y2, z1)],
+          [new ln.Math.Vector(x1, y2, z2), new ln.Math.Vector(x2, y2, z2)],
+          [new ln.Math.Vector(x2, y1, z1), new ln.Math.Vector(x2, y1, z2)],
+          [new ln.Math.Vector(x2, y1, z1), new ln.Math.Vector(x2, y2, z1)],
+          [new ln.Math.Vector(x2, y1, z2), new ln.Math.Vector(x2, y2, z2)],
+          [new ln.Math.Vector(x2, y2, z1), new ln.Math.Vector(x2, y2, z2)],
+        ]);
+        for (let i = 0; i <= 30; i++) {
+          const p = i / 30;
+          const x = x1 + (x2-x1)*p
+          const y = y1 + (y2-y1)*p
+          paths.push(ln.Math.Path.FromVectors([new ln.Math.Vector(x, y1, z1), new ln.Math.Vector(x, y1, z2)]));
+          paths.push(ln.Math.Path.FromVectors([new ln.Math.Vector(x, y2, z1), new ln.Math.Vector(x, y2, z2)]));
+          paths.push(ln.Math.Path.FromVectors([new ln.Math.Vector(x1, y, z1), new ln.Math.Vector(x1, y, z2)]));
+          paths.push(ln.Math.Path.FromVectors([new ln.Math.Vector(x2, y, z1), new ln.Math.Vector(x2, y, z2)]));
+        }
+        return paths
+      }
+    }
+
+    let shape = ln.Shapes.CsgShape.Difference(
+      new ShadedBoxShape(new ln.Math.Vector(-1, -1, 0), new ln.Math.Vector(1, 1, 2)),
+      new ln.Shapes.TransformShape(
+        new ln.Shapes.BoxShape(new ln.Math.Vector(-2, -2, 1.5), new ln.Math.Vector(2, 2, 2.5)),
+        ln.Math.Matrix.Rotate(new ln.Math.Vector(1, 0, 0), ln.Math.Radians(30))
+      )
+    );
+
+    shape = ln.Shapes.CsgShape.Difference(
+      shape,
+      new ln.Shapes.TransformShape(
+        new ln.Shapes.BoxShape(new ln.Math.Vector(-2, -2, 1.5), new ln.Math.Vector(2, 2, 2.5)),
+        ln.Math.Matrix.Rotate(new ln.Math.Vector(1, 0, 0), ln.Math.Radians(-30))
+      )
+    )
+
+    const shapes = [
+      shape,
+      new ln.Shapes.TransformShape(
+        new ln.Shapes.BoxShape(new ln.Math.Vector(-1.2, -0.865, 1.5), new ln.Math.Vector(1.2, 0.5, 1.501)),
+        ln.Math.Matrix.Rotate(new ln.Math.Vector(1, 0, 0), ln.Math.Radians(30))
+      ),
+      new ln.Shapes.TransformShape(
+        new ln.Shapes.BoxShape(new ln.Math.Vector(-1.2, -0.5, 1.5), new ln.Math.Vector(1.2, 0.865, 1.501)),
+        ln.Math.Matrix.Rotate(new ln.Math.Vector(1, 0, 0), ln.Math.Radians(-30))
+      )
+    ];
+
+    let svgs = [];
+    for (let i = 0; i < 360; i++) {
+      const scene = new ln.Core.Scene();
+      const m = ln.Math.Matrix.Rotate(new ln.Math.Vector(0, 0, 1), ln.Math.Radians(i + 45 + 90));
+      for (const s of shapes) {
+        scene.Add(new ln.Shapes.TransformShape(s, m));
+      }
+      const width = 750.0;
+      const height = 750.0;
+      const paths = scene.Render(
+        new ln.Math.Vector(0, 20, 15),
+        new ln.Math.Vector(0, 0, 2),
+        new ln.Math.Vector(0, 0, 1),
+        width, height, 20, 0.1, 100, 0.01
+      );
+
+      let ns = 'http://www.w3.org/2000/svg';
+      let svg = document.createElementNS(ns, 'svg');
+      svg.setAttribute('width', '100vw');
+      svg.setAttribute('height', '100vh');
+      svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+      svg.setAttribute('style', 'background-color:white;');
+      for (const path of paths) {
+        let svgPath = document.createElementNS(ns, 'path');
+        svgPath.setAttribute('style', 'fill: none; stroke-width: 1; stroke:black;');
+        let d = `M ${path[0].X} ${path[0].Y} `;
+        for (let i = 1; i < path.length; i++) {
+          d += `L ${path[i].X} ${path[i].Y}`;
+        }
+        svgPath.setAttribute('d', d);
+        svg.appendChild(svgPath);
+      }
+      svgs.push(svg);
+    }
+
+    let frameNum = 0;
+    function update() {
+      let svg = document.querySelector("svg");
+      if (svg) svg.remove();
+      document.body.appendChild(svgs[frameNum % svgs.length]);
+      frameNum++;
+      setTimeout(() => {
+        requestAnimationFrame(update);
+      }, 1000 / 60);
+    }
+    update();
+
+  </script>
+</body>
+</html>

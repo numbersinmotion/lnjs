@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>CSG Example</title>
+  <script src='../dist/ln.global.js'></script>
+</head>
+<body>
+  <script>
+
+    const shape = ln.Shapes.CsgShape.Difference(
+      ln.Shapes.CsgShape.Difference(
+        ln.Shapes.CsgShape.Difference(
+          ln.Shapes.CsgShape.Intersection(
+            new ln.Shapes.SphereShape(new ln.Math.Vector(0, 0, 0), 1),
+            new ln.Shapes.BoxShape(new ln.Math.Vector(-0.8, -0.8, -0.8), new ln.Math.Vector(0.8, 0.8, 0.8)),
+          ),
+          new ln.Shapes.CylinderShape(0.4, -2, 2),
+        ),
+        new ln.Shapes.TransformShape(
+          new ln.Shapes.CylinderShape(0.4, -2, 2),
+          ln.Math.Matrix.Rotate(new ln.Math.Vector(1, 0, 0), ln.Math.Radians(90))
+        )
+      ),
+      new ln.Shapes.TransformShape(
+        new ln.Shapes.CylinderShape(0.4, -2, 2),
+        ln.Math.Matrix.Rotate(new ln.Math.Vector(0, 1, 0), ln.Math.Radians(90))
+      )
+    );
+    //
+    // for i := 0; i < 90; i += 2 {
+    //   fmt.Println(i)
+    //   scene := ln.Scene{}
+    //   m := ln.Rotate(ln.Vector{0, 0, 1}, ln.Radians(float64(i)))
+    //   scene.Add(ln.NewTransformedShape(shape, m))
+    //   eye := ln.Vector{0, 6, 2}
+    //   center := ln.Vector{0, 0, 0}
+    //   up := ln.Vector{0, 0, 1}
+    //   width := 750.0
+    //   height := 750.0
+    //   paths := scene.Render(eye, center, up, width, height, 20, 0.1, 100, 0.01)
+    //   paths.WriteToPNG(fmt.Sprintf("out%03d.png", i), width, height)
+    // }
+
+    let svgs = [];
+    for (let i = 0; i < 90; i++) {
+      const scene = new ln.Core.Scene();
+      const m = ln.Math.Matrix.Rotate(new ln.Math.Vector(0, 0, 1), ln.Math.Radians(i));
+      scene.Add(new ln.Shapes.TransformShape(shape, m));
+      const width = 750.0;
+      const height = 750.0;
+      // const paths = scene.Render(
+      //   new ln.Math.Vector(0, 6, 2),
+      //   new ln.Math.Vector(0, 0, 0),
+      //   new ln.Math.Vector(0, 0, 1),
+      //   width, height, 20, 0.1, 100, 0.01
+      // );
+      const paths = scene.RenderOrthographic(
+        new ln.Math.Vector(0, 6, 2),
+        new ln.Math.Vector(0, 0, 0),
+        new ln.Math.Vector(0, 0, 1),
+        width, height, -2, 2, -2, 2, 0.1, 100, 0.01
+      );
+
+      let ns = 'http://www.w3.org/2000/svg';
+      let svg = document.createElementNS(ns, 'svg');
+      svg.setAttribute('width', '100vw');
+      svg.setAttribute('height', '100vh');
+      svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+      svg.setAttribute('style', 'background-color:white;');
+      for (const path of paths) {
+        let svgPath = document.createElementNS(ns, 'path');
+        svgPath.setAttribute('style', 'fill: none; stroke-width: 1; stroke:black;');
+        let d = `M ${path[0].X} ${path[0].Y} `;
+        for (let i = 1; i < path.length; i++) {
+          d += `L ${path[i].X} ${path[i].Y}`;
+        }
+        svgPath.setAttribute('d', d);
+        svg.appendChild(svgPath);
+      }
+      svgs.push(svg);
+    }
+
+    let frameNum = 0;
+    function update() {
+      let svg = document.querySelector("svg");
+      if (svg) svg.remove();
+      document.body.appendChild(svgs[frameNum % svgs.length]);
+      frameNum++;
+      window.requestAnimationFrame(update);
+    }
+    window.requestAnimationFrame(update);
+    // const scene = new ln.Core.Scene();
+    // scene.Add(shape);
+    //
+    // const width = 750.0;
+    // const height = 750.0;
+    // const paths = scene.Render(
+    //   new ln.Math.Vector(0, 6, 2),
+    //   new ln.Math.Vector(0, 0, 0),
+    //   new ln.Math.Vector(0, 0, 1),
+    //   width, height, 20, 0.1, 100, 0.01
+    // );
+    //
+    // let ns = 'http://www.w3.org/2000/svg';
+    // let svg = document.createElementNS(ns, 'svg');
+    // svg.setAttribute('width', '100vw');
+    // svg.setAttribute('height', '100vh');
+    // svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    // svg.setAttribute('style', 'background-color:white;');
+    // for (const path of paths) {
+    //   let svgPath = document.createElementNS(ns, 'path');
+    //   svgPath.setAttribute('style', 'fill: none; stroke-width: 1; stroke:black;');
+    //   let d = `M ${path[0].X} ${path[0].Y} `;
+    //   for (let i = 1; i < path.length; i++) {
+    //     d += `L ${path[i].X} ${path[i].Y}`;
+    //   }
+    //   svgPath.setAttribute('d', d);
+    //   svg.appendChild(svgPath);
+    // }
+    // document.body.appendChild(svg);
+
+    // fetch('https://raw.githubusercontent.com/fogleman/ln/master/examples/suzanne.obj')
+    //   .then(response => response.body)
+    //   .then(body => {
+    //     const reader = body.getReader();
+    //     const decoder = new TextDecoder();
+    //
+    //     function readLine() {
+    //       return reader.read().then(({ done, value }) => {
+    //         if (done) {
+    //           return null;
+    //         }
+    //
+    //         const chunk = decoder.decode(value);
+    //         const lines = chunk.split('\n');
+    //
+    //         if (lines.length > 1) {
+    //           const firstLine = lines.shift();
+    //           console.log(firstLine); // Process the first line
+    //
+    //           // Push the remaining lines back to the stream
+    //           const remainingChunk = lines.join('\n');
+    //           reader.unread(new TextEncoder().encode(remainingChunk));
+    //         }
+    //
+    //         return readLine();
+    //       });
+    //     }
+    //
+    //     readLine();
+    //   })
+    //   .catch(error => console.error('Error:', error));
+
+    fetch("https://raw.githubusercontent.com/fogleman/ln/master/examples/suzanne.obj")
+      .then((res) => res.text())
+      .then((text) => {
+        console.log(text);
+      })
+      .catch((e) => console.error(e));
+  </script>
+</body>
+</html>

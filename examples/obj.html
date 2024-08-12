@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>OBJ Example</title>
+  <script src='../dist/ln.global.js'></script>
+</head>
+<body>
+<script>
+
+  let frameNum = 0;
+  function update() {
+    let svg = document.querySelector("svg");
+    if (svg) svg.remove();
+    const s = document.body.appendChild(svgs[frameNum % svgs.length]);
+    frameNum++;
+    if (frameNum < svgs.length) {
+      // const svgBlob = new Blob([s.outerHTML], { type: 'image/svg+xml;charset=utf-8' });
+      // const svgUrl = URL.createObjectURL(svgBlob);
+      // const downloadLink = document.createElement("a");
+      // downloadLink.href = svgUrl;
+      // downloadLink.download = `test-${frameNum.toString().padStart(2, "0")}.svg`;
+      // document.body.appendChild(downloadLink);
+      // downloadLink.click();
+      // document.body.removeChild(downloadLink);
+    }
+    setTimeout(() => {
+      requestAnimationFrame(update);
+    }, 1000 / 10);
+  }
+
+  let svgs = [];
+  function renderScene(handObjString, glassObjString) {
+    // const eye = new ln.Math.Vector(-0.5, 0.5, 2);
+    // const meshShape = ln.Shapes.SilhouetteMeshShape.FromObjString(handObjString, eye);
+    // // const meshShape = ln.Shapes.MeshShape.FromObjString(objString);
+    // meshShape.UnitCube();
+    for (let i = 0; i < 360 / 1; i += 36) {
+      const eye = ln.Math.Matrix.Rotate(new ln.Math.Vector(0, 1, 0), ln.Math.Radians(i)).MulPosition(new ln.Math.Vector(0, 1, 2.5));
+      const meshShape = ln.Shapes.SilhouetteMeshShape.FromObjString(handObjString, eye, 0.15);
+      meshShape.UnitCube();
+      meshShape.Transform(ln.Math.Matrix.Rotate(new ln.Math.Vector(0, 0, 1), ln.Math.Radians(-120)))
+      meshShape.Transform(ln.Math.Matrix.Rotate(new ln.Math.Vector(0, 1, 0), ln.Math.Radians(90)))
+      meshShape.Transform(ln.Math.Matrix.Rotate(new ln.Math.Vector(0, 0, 1), ln.Math.Radians(-15)))
+      meshShape.Transform(ln.Math.Matrix.Rotate(new ln.Math.Vector(1, 0, 0), ln.Math.Radians(20)))
+      meshShape.Transform(ln.Math.Matrix.Rotate(new ln.Math.Vector(1, 0, 0), ln.Math.Radians(30)))
+      const glassMeshShape = ln.Shapes.SilhouetteMeshShape.FromObjString(glassObjString, eye, 0.1);
+      glassMeshShape.UnitCube();
+      glassMeshShape.Transform(ln.Math.Matrix.Scale(new ln.Math.Vector(0.8, 0.8, 0.8)))
+      glassMeshShape.Transform(ln.Math.Matrix.Rotate(new ln.Math.Vector(1, 0, 0), ln.Math.Radians(10)))
+      glassMeshShape.Transform(ln.Math.Matrix.Translate(new ln.Math.Vector(-0.05, 0.02, 0.25)))
+      glassMeshShape.Transform(ln.Math.Matrix.Rotate(new ln.Math.Vector(1, 0, 0), ln.Math.Radians(30)))
+      const scene = new ln.Core.Scene();
+      // scene.Add(new ln.Shapes.TransformShape(
+      //   meshShape,
+      //   ln.Math.Matrix.Rotate(new ln.Math.Vector(0, 1, 0), ln.Math.Radians(90))
+      // ));
+      scene.Add(meshShape);
+      scene.Add(glassMeshShape);
+      // 5in x 3.5in
+      const width = 1024.0;
+      const height = 1024.0 * 5 / 3.5;
+      const paths = scene.Render(
+        eye,                         // eye
+        new ln.Math.Vector(0, 0, 0), // center
+        new ln.Math.Vector(0, 1, 0), // up
+        width, height, 35, 0.1, 100, 0.01
+      );
+
+      let ns = 'http://www.w3.org/2000/svg';
+      let svg = document.createElementNS(ns, 'svg');
+      svg.setAttribute('width', '100vw');
+      svg.setAttribute('height', '100vh');
+      svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+      svg.setAttribute('style', 'background-color:white;');
+      for (const path of paths) {
+        let svgPath = document.createElementNS(ns, 'path');
+        svgPath.setAttribute('style', 'fill: none; stroke-width: 1; stroke:black;');
+        let d = `M ${path[0].X} ${path[0].Y} `;
+        for (let i = 1; i < path.length; i++) {
+          d += `L ${path[i].X} ${path[i].Y}`;
+        }
+        svgPath.setAttribute('d', d);
+        svg.appendChild(svgPath);
+      }
+      // document.body.appendChild(svg);
+      svg.setAttribute('style', 'position: absolute; inset: 0; background-color: white;');
+      svgs.push(svg);
+    }
+    update();
+  }
+
+  // fetch("https://raw.githubusercontent.com/fogleman/ln/master/examples/suzanne.obj")
+  //   .then((res) => res.text())
+  //   .then((objString) => {
+  //     renderScene(objString);
+  //   })
+  //   .catch((e) => console.error(e));
+
+  fetch("./lowpoly_hand.obj")
+    .then((res) => res.text())
+    .then((handObjString) => {
+      fetch("./wine_glass.obj")
+        .then((res) => res.text())
+        .then((glassObjString) => {
+          renderScene(handObjString, glassObjString);
+        })
+        .catch((e) => console.error(e));
+    })
+    .catch((e) => console.error(e));
+
+</script>
+</body>
+</html>

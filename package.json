@@ -1,0 +1,26 @@
+{
+  "name": "lnjs",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "dist/ln.js",
+  "types": "dist/ln.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "prettier --write \"**/*.{ts, tsx}\""
+  },
+  "keywords": [],
+  "author": "Matt Jacobson",
+  "license": "MIT",
+  "devDependencies": {
+    "@eslint/js": "^9.7.0",
+    "@types/eslint__js": "^8.42.3",
+    "@types/node": "^20.14.11",
+    "eslint": "^8.57.0",
+    "prettier": "3.3.3",
+    "tsup": "^8.2.0",
+    "typescript": "^5.5.3",
+    "typescript-eslint": "^7.16.1"
+  }
+}
